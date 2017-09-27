@@ -1,0 +1,324 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Clone Bitstamp</title>
+    <link rel="stylesheet" href="./style.css" type="text/css">
+    <link rel="stylesheet" href="./customize.css" type="text/css">
+    <link rel="stylesheet" href="./bootstrap.min.css" type="text/css">
+
+    <script src="./jquery/jquery.min.js" type="text/javascript"></script>
+    <script src="./amcharts.js" type="text/javascript"></script>
+    <script src="./serial.js" type="text/javascript"></script>
+    <script src="./amstock.js" type="text/javascript"></script>
+    <script src="./xy.js" type="text/javascript"></script>
+
+    <script>
+        AmCharts.ready(function() {
+            generateChartData();
+            // createStockChart();
+            generateNewData();
+            // createGraphChart();
+        });
+
+        var chartData = [];
+        var newData = [];
+        var newData1 = [];
+
+        var g_curPrice = 820 + Math.round(Math.random() * 10 * 100) / 100;
+        var g_curPercent = "+2.29%";
+        var g_curDiff = 10 + Math.round(Math.random() * 10 * 100) / 100;
+
+        function generateChartData() {
+            $.ajax({
+                dataType: "json",
+                url: "./data/stock.json",
+                mimeType: "application/json",
+                success: function(result) {
+                    $.each(result, function(i, obj) {
+                        chartData[chartData.length] = obj;
+                        if (chartData.length % 2 == 0) {
+                            chartData[i].color = "#c2c2bc";
+                        } else {
+                            chartData[i].color = "#d3d4cd";
+                        }
+                    });
+
+                    createStockChart();
+                }
+            });
+        }
+
+        function generateNewData() {
+
+            $.ajax({
+                dataType: "json",
+                url: "./data/bJson.json",
+                mimeType: "application/json",
+                success: function(result) {
+                    $.each(result, function(i, obj) {
+                        newData[newData.length] = obj;
+                    });
+                }
+            });
+
+            $.ajax({
+                dataType: "json",
+                url: "./data/sJson.json",
+                mimeType: "application/json",
+                success: function(result) {
+                    $.each(result, function(i, obj) {
+                        newData1[newData1.length] = obj;
+                    });
+
+                    for (var i = 0; i < newData1.length; i++) {
+                        newData[newData.length] = newData1[i];
+                    }
+                    createGraphChart();
+                }
+            });
+        }
+
+        function createStockChart() {
+            var chart = new AmCharts.AmStockChart();
+
+            // DATASET //////////////////////////////////////////
+            var dataSet = new AmCharts.DataSet();
+            dataSet.fieldMappings = [{
+                fromField: "open",
+                toField: "open"
+            }, {
+                fromField: "close",
+                toField: "close"
+            }, {
+                fromField: "high",
+                toField: "high"
+            }, {
+                fromField: "low",
+                toField: "low"
+            }, {
+                fromField: "volume",
+                toField: "volume"
+            }, {
+                fromField: "value",
+                toField: "value"
+            }];
+            dataSet.color = "#d3d4cd";
+            dataSet.dataProvider = chartData;
+            dataSet.categoryField = "date";
+
+            chart.dataSets = [dataSet];
+
+            // PANELS ///////////////////////////////////////////
+            var stockPanel = new AmCharts.StockPanel();
+            stockPanel.showCategoryAxis = false;
+
+            var valueAxis = new AmCharts.ValueAxis();
+            valueAxis.dashLength = 5;
+            valueAxis.offset = 40;
+            stockPanel.addValueAxis(valueAxis);
+
+            stockPanel.showCategoryAxis = true;
+
+            // graph of first stock panel
+            var graph = new AmCharts.StockGraph();
+            graph.type = "candlestick";
+            graph.openField = "open";
+            graph.closeField = "close";
+            graph.highField = "high";
+            graph.lowField = "low";
+            graph.valueField = "close";
+            graph.categoryField = "date";
+            graph.lineColor = "#9dcf3a";
+            graph.fillColors = "#9dcf3a";
+            graph.negativeLineColor = "#db4c3c";
+            graph.negativeFillColors = "#db4c3c";
+            graph.fillAlphas = 1;
+            // graph.balloonText = "open:<b>[[open]]</b><br>close:<b>[[close]]</b><br>low:<b>[[low]]</b><br>high:<b>[[high]]</b>";
+            graph.useDataSetColors = false;
+
+            var graph_bar = new AmCharts.StockGraph();
+            graph_bar.type = "column";
+            graph_bar.valueField = "volume";
+            graph_bar.categoryField = "date";
+            graph_bar.lineColorField = "color";
+            graph_bar.fillColorsField = "color";
+            graph_bar.fillAlphas = 1;
+            // graph.balloonText = "open:<b>[[open]]</b><br>close:<b>[[close]]</b><br>low:<b>[[low]]</b><br>high:<b>[[high]]</b>";
+            // graph_bar.useDataSetColors = false;
+            stockPanel.addStockGraph(graph_bar);
+            stockPanel.addStockGraph(graph);
+            stockPanel.autoMargin = false;
+            stockPanel.marginRight = 40;
+
+            var stockLegend = new AmCharts.StockLegend();
+            stockLegend.markerType = "none";
+            stockLegend.markerSize = 0;
+            stockLegend.valueWidth = 250;
+            stockPanel.stockLegend = stockLegend;
+
+            chart.panels = [stockPanel];
+
+
+            // OTHER SETTINGS ////////////////////////////////////
+            var sbsettings = new AmCharts.ChartScrollbarSettings();
+            sbsettings.graph = graph;
+            sbsettings.graphType = "line";
+            sbsettings.usePeriod = "WW";
+            sbsettings.updateOnReleaseOnly = false;
+            sbsettings.position = top;
+            chart.chartScrollbarSettings = sbsettings;
+
+            chart.chartScrollbarSettings.enabled = false;
+            chart.chartCursorSettings.enabled = false;
+
+            var categoryAxesSettings = new AmCharts.CategoryAxesSettings();
+            categoryAxesSettings.gridAlpha = 0;
+            categoryAxesSettings.minPeriod = "mm";
+            chart.categoryAxesSettings = categoryAxesSettings;
+
+            var valueAxesSettings = new AmCharts.ValueAxesSettings();
+            valueAxesSettings.dashLength = 5;
+            valueAxesSettings.position = "right";
+            chart.valueAxesSettings = valueAxesSettings;
+
+            var panelsSettings = new AmCharts.PanelsSettings();
+            panelsSettings.marginLeft = 20;
+            panelsSettings.marginRight = 50;
+            chart.panelsSettings = panelsSettings;
+
+            // PERIOD SELECTOR ///////////////////////////////////
+            var periodSelector = new AmCharts.PeriodSelector();
+            periodSelector.inputFieldsEnabled = false;
+            periodSelector.periodsText = "";
+            periodSelector.position = "top";
+            periodSelector.periods = [{
+                period: "mm",
+                count: 3,
+                label: "3m"
+            }, {
+                period: "mm",
+                count: 15,
+                label: "15m"
+            }, {
+                period: "mm",
+                count: 30,
+                label: "30m"
+            }, {
+                period: "hh",
+                count: 1,
+                selected: true,
+                label: "1h"
+            }, {
+                period: "hh",
+                count: 4,
+                label: "4h"
+            }, {
+                period: "DD",
+                count: 1,
+                label: "1d"
+            }];
+            chart.periodSelector = periodSelector;
+
+            chart.addListener("zoomed", function(e) {
+                // console.log(chartData);
+            });
+
+            chart.write('chartdiv');
+        }
+
+        function createGraphChart() {
+            // XY CHART
+            var newChart = new AmCharts.AmXYChart();
+            newChart.dataProvider = newData;
+            newChart.startDuration = 1;
+
+            // AXES
+            // X
+            var xAxis = new AmCharts.ValueAxis();
+            xAxis.position = "bottom";
+            xAxis.dashLength = 10;
+            xAxis.gridAlpha = 0;
+            xAxis.axisAlpha = 0;
+            xAxis.autoGridCount = true;
+            xAxis.id = "Prc";
+            xAxis.zoomToValues(newData[newData.length - newData1.length - 1].bPrc, newData[newData.length - 1].sPrc);
+            newChart.addValueAxis(xAxis);
+
+            // Y
+            var yAxis = new AmCharts.ValueAxis();
+            yAxis.position = "right";
+            yAxis.dashLength = 5;
+            yAxis.axisAlpha = 0;
+            yAxis.autoGridCount = true;
+            newChart.addValueAxis(yAxis);
+
+            // GRAPHS
+            var graph1 = new AmCharts.AmGraph();
+            graph1.lineColor = "#99DD00";
+            graph1.fillColors = "#99DD00";
+            graph1.xField = "bPrc";
+            graph1.yField = "bVol";
+            graph1.lineAlpha = 1;
+            graph1.fillAlphas = 0.2;
+            graph1.fillToAxis = "Prc";
+            graph1.animationPlayed = true;
+            newChart.addGraph(graph1);
+
+            var graph2 = new AmCharts.AmGraph();
+            graph2.lineColor = "#FF0000";
+            graph2.fillColors = "#FF0000";
+            graph2.xField = "sPrc";
+            graph2.yField = "sVol";
+            graph2.lineAlpha = 0.9;
+            graph2.fillAlphas = 0.2;
+            graph2.fillToAxis = "Prc";
+            graph2.animationPlayed = true;
+            newChart.addGraph(graph2);
+
+            newChart.zoomOutText = "";
+
+            newChart.write('newchart');
+        }
+    </script>
+</head>
+
+<body style="background-color:#f4f5ed; min-width: 540px;">
+    <div class="row" style="margin-top: 20px;">
+        <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6">
+            <div class="mainPrice" style="padding-left: 20px;"></div>
+            <div class="mainPercent" style="padding-left: 40px;"></div>
+        </div>
+        <div class="col-xs-4 col-sm-4 col-md-5 col-lg-5">
+            <div style="font-size: 20px; color :grey; font-weight: 200; text-align: right;">24H HIGH</div>
+            <div style="font-size: 20px; color :grey; font-weight: 200; text-align: right;">24H LOW</div>
+            <div style="font-size: 20px; color :grey; font-weight: 200; text-align: right;">VOLUME</div>
+        </div>
+        <div class="col-xs-2 col-sm-2 col-md-1 col-lg-1">
+            <div style="font-size: 20px;font-weight: 400;">999.99</div>
+            <div style="font-size: 20px;font-weight: 400;">999.99</div>
+            <div style="font-size: 20px;font-weight: 400;">99999</div>
+        </div>
+    </div>
+    <div id="chartdiv" style="width:100%;"></div>
+    <div id="newchart" style="width:100%;"></div>
+    <div id="test"></div>
+
+    <script>
+        var nRoundDown = (g_curPrice * 100) - Math.floor(g_curPrice) * 100;
+        if (nRoundDown < 10) nRoundDown = "0" + nRoundDown;
+        $(".mainPrice").html("<span style = \"font-size : 30px; font-weight:100;\">$ </span><span style = \"font-size:60px; font-weight:200;\">" + Math.round(g_curPrice) + "</span><span style=\"font-size:30px;font-weight:100;\">," +
+            nRoundDown + "</span>");
+        $(".mainPercent").html("<span style = \"font-size:20px; color:#8FC91F;font-weight:200;\">" + g_curPercent + "</span><span style=\"font-size:20px; font-weight:200; margin-left:15px;\">" + g_curDiff.toFixed(2) + " $" + "</span>");
+
+        var winH = $(window).height();
+        winH = winH - 150;
+        var fstH = winH / 5 * 3;
+        var sndH = winH / 5 * 2;
+        $("#chartdiv").css("height", fstH);
+        $("#newchart").css("height", sndH);
+    </script>
+</body>
+
+</html>
